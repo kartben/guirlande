@@ -1,9 +1,10 @@
 var request = require('request');
 
 var avopTrunkBuildUrl = "https://jenkins.anyware/platform-new/job/avop-trunk/api/json";
+var avopBranchBuildUrl = "https://jenkins.anyware/platform-new/job/avop-13.2.x/api/json";
 var credentials = {
-    "user" : "CHANGEME",
-    "password" : "CHANGEME"
+    "user" : "changeme",
+    "password" : "changeme"
 };
 
 /**
@@ -13,7 +14,7 @@ var credentials = {
  * @param  {Function} callback called with the last build object
  * 
  */
-var getAvopTrunkBuild = function(buildUrl, callback) {
+var getBuild = function(buildUrl, callback) {
     request({
             url : buildUrl,
             auth : credentials,
@@ -21,13 +22,13 @@ var getAvopTrunkBuild = function(buildUrl, callback) {
         },
         function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                var avopTrunkBuild = JSON.parse(body);
-                var buildColor = avopTrunkBuild.color;
-                var lastBuildUrl = avopTrunkBuild.lastBuild.url;
+                var build = JSON.parse(body);
+                var buildColor = build.color;
+                var lastBuildUrl = build.lastBuild.url;
 
-                console.log("Color : ", buildColor);
-                console.log("Last build : ", lastBuildUrl);
-                callback(lastBuildUrl);
+                // console.log("Color : ", buildColor);
+                // console.log("Last build : ", lastBuildUrl);
+                callback(buildColor, lastBuildUrl);
             }
     });
 };
@@ -47,7 +48,7 @@ var getLastBuildStatus = function(lastBuildUrl, callback) {
             if (!error && response.statusCode == 200) {
                 var lastBuild = JSON.parse(body);
 
-                console.log("Last build ", lastBuild);
+                // console.log("Last build ", lastBuild);
                 if(callback) {
                     callback(lastBuild);
                 }
@@ -56,8 +57,20 @@ var getLastBuildStatus = function(lastBuildUrl, callback) {
 };
 
 // Go go go !
-getAvopTrunkBuild(avopTrunkBuildUrl, function(lastBuildUrl) {
+console.log("Get avop trunk status");
+getBuild(avopTrunkBuildUrl, function(buildColor, lastBuildUrl) {
     getLastBuildStatus(lastBuildUrl, function(lastBuild) {
         // Extract the necessary info and call the guirlande API.
+        console.log("push 24 ", buildColor, " pixels");
+
+        console.log("Get avop branch status");
+        getBuild(avopBranchBuildUrl, function(buildColor, lastBuildUrl) {
+            getLastBuildStatus(lastBuildUrl, function(lastBuild) {
+                // Extract the necessary info and call the guirlande API.
+                console.log("push 24 ", buildColor, " pixels");
+            });
+        });
+
+
     });
 });
