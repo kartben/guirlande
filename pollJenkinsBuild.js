@@ -4,7 +4,8 @@ var _ = require('underscore');
 var avopTrunkBuildUrl = "https://jenkins.anyware/platform-new/job/avop-trunk/api/json";
 var avopBranchBuildUrl = "https://jenkins.anyware/platform-new/job/avop-13.2.x/api/json";
 var m3daServerUrl = "http://m2m.eclipse.org";
-var guirlandeUri = "/m3da/data/jaxcon-demo";
+var DEVICE_ID = "guirlande-CHANGEME";
+var guirlandeUri = "/m3da/data/" + DEVICE_ID;
 
 var POLLING_PERIOD = 5000; // Every 5 seconds
 
@@ -52,7 +53,7 @@ var getBuild = function(buildUrl, callback) {
 };
 
 /**
- * Extract the necessary info to let the magin happen on the LED strip :)
+ * Extract the necessary info to let the magic happen on the LED strip :)
  * 
  * @param  {String} lastBuildUrl
  */
