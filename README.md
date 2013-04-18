@@ -19,10 +19,33 @@ You should either use a distribution already providing SPI, or follow the instru
 * In order to run the Mihini application controlling the RGB LED strip, you need to install Mihini on your RaspberryPi: http://wiki.eclipse.org/Mihini/Run_Mihini_on_an_Open_Hardware_platform
 * You will need to associate your deviceId of choice to your Pi, so as commands being sent by the bot polling Jenkins are correctly sent to *your* system.  
 Once Mihini is running on the Pi, you can change the deviceId by doing:
-    * telnet localhost 2000
-    * agent.config.agent.deviceId = "yourUniqueId"
-    * ^D  
+    * `telnet localhost 2000`
+    * `agent.config.agent.deviceId = "yourUniqueId"`
+    * `^D`  
 You should then restart Mihini for the modification to be applied.  
 * Launch the application using Koneki IDE, in a very similar manner to what is explained in the wiki page mentioned earlier.  
 Make sure to launch the Mihini app (main.lua) as *root*. This is done by using root credentials when configuring your remote connection in Eclipse Koneki IDE.  
 Of course, you can also launch main.lua application by hand on the Raspberry Pi, but this is likely going to be more SCP roundtrips between your system and the Pi if you still want to benefit from the Koneki IDE magic :)
+
+Node.js application (guirlande.js) instructions
+-----------------------------------------------
+
+This small application is a bit specific to our internal needs but you know what?! It's ok if you adapt it to fit yours :)
+
+#### What does it do ?
+Basically it polls 2 Jenkins builds status, check the "claim" state (see Claim report Jenkins plugin) and send a command to the Mihini application to update the LED strip. 
+We have chosen to "split" the 64 LED strip in 2 parts of 28 separated by 8 unused LEDs. Each 28 parts are split like this :
+* 24 for the build status
+* 4 for the "claim" state
+
+#### Instructions
+Just clone this repo, get the necessary dependencies :  
+`npm install`  
+
+Edit *guirlande.js* to : 
+* Change the Jenkins builds urls
+* Set the DeviceId  you already used in the Mihini application
+
+And and launch it :  
+ `node guirlande.js`
+
