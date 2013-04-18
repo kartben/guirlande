@@ -2,7 +2,8 @@ Guirlande
 ============
 ### JenkinsCI + RPi + LED strip => Fireworks !
 
-Guirlande is the French for "fairy light". It's a small M2M / IOT project that check Jenkins CI builds and display the status on a LED strip driven by Mihini Lua embedded application running on a Raspbery Pi.
+Guirlande is the French for "fairy light".
+It's a small M2M / IoT project that checks Jenkins CI builds and displays information related to their status on an LED strip driven by a Mihini Lua embedded application running on a Raspbery Pi.
 
 
 Mihini application (led-controller) instructions
