@@ -1,6 +1,13 @@
 var request = require('request');
 var _ = require('underscore');
 var nconf = require('nconf');
+var fs = require('fs');
+
+if (!fs.existsSync("./config.json")) {
+    console.error("Your forgot to create your config.json configuration file.");
+    console.log("You can use config.json.template.");
+    return;
+}
 
 // Load the config.json configuration file
 // You can use the config.json.template to create yours
