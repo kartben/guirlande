@@ -42,9 +42,11 @@ We have chosen to "split" the 64 LED strip in 2 parts of 28 separated by 8 unuse
 Just clone this repo, get the necessary dependencies :  
 `npm install`  
 
-Edit *guirlande.js* to : 
+Create a *config.json* based on the template to : 
 * Change the Jenkins builds urls
+* Use your own m3da server instead of the default one hosted on m2m.eclipse.org
 * Set the DeviceId  you already used in the Mihini application
+* Tweak the polling period
 
 And and launch it :  
  `node guirlande.js`
