@@ -5,6 +5,11 @@ var nconf = require('nconf');
 // Load the config.json configuration file
 // You can use the config.json.template to create yours
 nconf.use('file', { file: './config.json' });
+
+nconf.defaults({
+    "pollingPeriod" : 30000
+});
+
 nconf.load();
 
 var build1Url = nconf.get("build1Url");
@@ -37,10 +42,6 @@ if (!DEVICE_ID) {
 if (configError) {
     console.error("## Please check the your config.json file.");
     return;
-}
-
-if (!POLLING_PERIOD) {
-    POLLING_PERIOD = 30000; // Default value is 30 seconds
 }
 
 var guirlandeUri = "/m3da/data/" + DEVICE_ID;
