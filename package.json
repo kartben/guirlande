@@ -5,7 +5,8 @@
   "main": "guirlande.js",
   "dependencies": {
     "request": "~2.16.6",
-    "underscore": "~1.4.4"
+    "underscore": "~1.4.4",
+    "nconf": "~0.6.7"
   },
   "devDependencies": {},
   "scripts": {

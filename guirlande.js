@@ -1,15 +1,53 @@
 var request = require('request');
 var _ = require('underscore');
+var nconf = require('nconf');
 
-var avopTrunkBuildUrl = "https://jenkins.anyware/platform-new/job/avop-trunk/api/json";
-var avopBranchBuildUrl = "https://jenkins.anyware/platform-new/job/avop-13.2.x/api/json";
-var m3daServerUrl = "http://m2m.eclipse.org";
-var DEVICE_ID = "guirlande-CHANGEME";
+// Load the config.json configuration file
+// You can use the config.json.template to create yours
+nconf.use('file', { file: './config.json' });
+nconf.load();
+
+var build1Url = nconf.get("build1Url");
+var build2Url = nconf.get("build2Url");
+var m3daServerUrl = nconf.get("m3daServerUrl");
+var DEVICE_ID = nconf.get("deviceId");
+var POLLING_PERIOD = nconf.get("pollingPeriod");
+
+var configError = false;
+if (!build1Url) {
+    console.error("## Config errror : 'build1Url' value not set.");
+    configError = true;
+}
+
+if (!build2Url) {
+    console.error("## Config errror : 'build2Url' value not set.");
+    configError = true;
+}
+
+if (!m3daServerUrl) {
+    console.error("## Config errror : 'm3daServerUrl' value not set.");
+    configError = true;
+}
+
+if (!DEVICE_ID) {
+    console.error("## Config errror : 'deviceId' value not set.");
+    configError = true;
+}
+
+if (configError) {
+    console.error("## Please check the your config.json file.");
+    return;
+}
+
+if (!POLLING_PERIOD) {
+    POLLING_PERIOD = 30000; // Default value is 30 seconds
+}
+
 var guirlandeUri = "/m3da/data/" + DEVICE_ID;
 
-var POLLING_PERIOD = 5000; // Every 5 seconds
 
 // Define the default colors
+// TODO : change format and move them to the config.json.template
 var colors = {
     grey : { red : 100, green : 100, blue : 100 },
     aborted : { red : 100, green : 100, blue : 100 },
@@ -53,7 +91,7 @@ var getBuild = function(buildUrl, callback) {
 };
 
 /**
- * Extract the necessary info to let the magic happen on the LED strip :)
+ * Retrieve the latest build 
  * 
  * @param  {String} lastBuildUrl
  */
@@ -140,7 +178,7 @@ var sendPixels = function(pixels) {
 
 // Go go go !
 console.log("############################################");
-console.log("####      Let's go ! ...in", POLLING_PERIOD / 1000, "seconds     ###");
+console.log("      Let's go ! ...in", POLLING_PERIOD / 1000, "seconds");
 console.log("############################################");
 var checkNumber = 0;
 setInterval(function() {
@@ -151,7 +189,7 @@ setInterval(function() {
 
     console.log("\n\nGet avop trunk status #", checkNumber);
 
-    getBuild(avopTrunkBuildUrl, function(buildColor, lastBuildUrl) {
+    getBuild(build1Url, function(buildColor, lastBuildUrl) {
         getLastBuildStatus(lastBuildUrl, function(lastBuild) {
             // Extract the necessary info and call the guirlande API.
             processBuildStatus(buildColor, lastBuild);
@@ -162,7 +200,7 @@ setInterval(function() {
             });
 
             console.log("\n\nGet avop branch status");
-            getBuild(avopBranchBuildUrl, function(buildColor, lastBuildUrl) {
+            getBuild(build2Url, function(buildColor, lastBuildUrl) {
                 getLastBuildStatus(lastBuildUrl, function(lastBuild) {
                     // Extract the necessary info and call the guirlande API.
                     processBuildStatus(buildColor, lastBuild);

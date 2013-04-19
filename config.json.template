@@ -1,0 +1,7 @@
+{
+    "build1Url" : "https://jenkins.yourDomain.com/job/job1/api/json",
+    "build2Url" : "https://jenkins.yourDomain.com/job/job2/api/json",
+    "m3daServerUrl" : "http://m2m.eclipse.org",
+    "deviceId" : "yourDeviceId",
+    "pollingPeriod" : 30000
+}
