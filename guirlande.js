@@ -8,15 +8,15 @@
  * Contributors:
  *     Sébastien Moran - initial API and implementation
  *******************************************************************************/
-
+var async = require('async');
 var request = require('request');
 var _ = require('underscore');
 var nconf = require('nconf');
 var fs = require('fs');
 
-if (!fs.existsSync("./config.json")) {
-    console.error("Your forgot to create your config.json configuration file.");
-    console.log("You can use config.json.template.");
+if (!fs.existsSync('./config.json')) {
+    console.error('Your forgot to create your config.json configuration file.');
+    console.log('You can use config.json.template.');
     return;
 }
 
@@ -25,44 +25,49 @@ if (!fs.existsSync("./config.json")) {
 nconf.use('file', { file: './config.json' });
 
 nconf.defaults({
-    "pollingPeriod" : 30000
+    'pollingPeriod' : 30000
 });
 
 nconf.load();
 
-var build1Url = nconf.get("build1Url");
-var build2Url = nconf.get("build2Url");
-var m3daServerUrl = nconf.get("m3daServerUrl");
-var DEVICE_ID = nconf.get("deviceId");
-var POLLING_PERIOD = nconf.get("pollingPeriod");
+var buildsUrl = nconf.get('buildsUrl');
+var m3daServerUrl = nconf.get('m3daServerUrl');
+var DEVICE_ID = nconf.get('deviceId');
+var POLLING_PERIOD = nconf.get('pollingPeriod');
 
 var configError = false;
-if (!build1Url) {
-    console.error("## Config errror : 'build1Url' value not set.");
-    configError = true;
-}
-
-if (!build2Url) {
-    console.error("## Config errror : 'build2Url' value not set.");
+if (!buildsUrl) {
+    console.error('## Config errror : "buildsUrl" value not set.');
     configError = true;
 }
 
 if (!m3daServerUrl) {
-    console.error("## Config errror : 'm3daServerUrl' value not set.");
+    console.error('## Config errror : "m3daServerUrl" value not set.');
     configError = true;
 }
 
 if (!DEVICE_ID) {
-    console.error("## Config errror : 'deviceId' value not set.");
+    console.error('## Config errror : "deviceId" value not set.');
     configError = true;
 }
 
 if (configError) {
-    console.error("## Please check the your config.json file.");
+    console.error('## Please check the your config.json file.');
     return;
 }
 
-var guirlandeUri = "/m3da/data/" + DEVICE_ID;
+var nbPixels = 64;
+var nbBuilds = buildsUrl.length;
+var nbBuildPixels = Math.round(nbPixels / nbBuilds);
+console.log("nbBuildPixels >>",nbBuildPixels);
+var nbBuildStatusPixels = Math.round(nbBuildPixels * 3 / 4);
+console.log("nbBuildStatusPixels >>",nbBuildStatusPixels);
+var nbBuildClaimedPixels = nbBuildPixels - nbBuildStatusPixels;
+console.log("nbBuildClaimedPixels >>",nbBuildClaimedPixels);
+console.log("Total >>",nbBuildStatusPixels + nbBuildClaimedPixels);
+
+
+var guirlandeUri = '/m3da/data/' + DEVICE_ID;
 
 
 // Define the default colors
@@ -116,14 +121,14 @@ var getBuild = function(buildUrl, callback) {
  */
 var getLastBuildStatus = function(lastBuildUrl, callback) {
     request({
-            url : lastBuildUrl + "/api/json",
+            url : lastBuildUrl + '/api/json',
             strictSSL : false
         },
         function (error, response, body) {
             if (!error && response.statusCode == 200) {
                 var lastBuild = JSON.parse(body);
 
-                // console.log("Last build ", lastBuild);
+                // console.log('Last build ', lastBuild);
                 if(callback) {
                     callback(lastBuild);
                 }
@@ -138,9 +143,9 @@ var getLastBuildStatus = function(lastBuildUrl, callback) {
  * @param  {Object} buildStatus, see Jenkins API for more details
  */
 var processBuildStatus = function(color, buildStatus) {
-    console.log(" Process build >> ", buildStatus.fullDisplayName);
-    console.log(" ", buildStatus.result, " => push 24 ", color, " pixels");
-    _.each(_.range(24), function(){
+    console.log(' Process build >> ', buildStatus.fullDisplayName);
+    console.log('', buildStatus.result, '=> push', nbBuildStatusPixels, color, 'pixels');
+    _.each(_.range(nbBuildStatusPixels), function(){
         pixels.push(colors[color]);
     });
 
@@ -152,13 +157,13 @@ var processBuildStatus = function(color, buildStatus) {
     // Does anyone has claimed this build ?
     var claimColor = colors.white;
     if (claimedStatus) {
-        console.log(" Claimed => push 4 green");
+        console.log(' Claimed => push',nbBuildClaimedPixels,'green');
         claimColor = colors.green;
     } else {
-        console.log(" Not claimed => push 4 white");
+        console.log(' Not claimed => push',nbBuildClaimedPixels,'white');
     }
 
-    _.each(_.range(4), function(){
+    _.each(_.range(nbBuildClaimedPixels), function(){
         pixels.push(claimColor);
     });
 };
@@ -172,62 +177,97 @@ var processBuildStatus = function(color, buildStatus) {
 var sendPixels = function(pixels) {
     var command = {
         settings : [{
-            key : "leds.writePixels",
+            key : 'leds.writePixels',
             value : pixels
         }]
     };
 
-    console.log("\n >>> Send pixels !");
+    console.log('\n >>> Send pixels !');
+    // printPixels(pixels);
 
-    request({
-        url : m3daServerUrl + guirlandeUri,
-        method : "POST",
-        body : JSON.stringify(command)
-    },
-    function(error, response, body) {
-        if(error) {
-            console.log(" <<<< Oops something went wrong ...");
-            console.log(body);
-        } else {
-            console.log(" <<<< Pixels updated !");
-        }
-        console.log(" ### Next check in ", POLLING_PERIOD / 1000, "seconds");
-    });
+    // request({
+    //     url : m3daServerUrl + guirlandeUri,
+    //     method : 'POST',
+    //     body : JSON.stringify(command)
+    // },
+    // function(error, response, body) {
+    //     if(error) {
+    //         console.log(' <<<< Oops something went wrong ...');
+    //         console.log(body);
+    //     } else {
+    //         console.log(' <<<< Pixels updated !');
+    //     }
+    //     console.log(' ### Next check in ', POLLING_PERIOD / 1000, 'seconds');
+    // });
+};
+
+var printPixels = function(pixels) {
+    var guirlande = '';
+
+    guirlande = _.map(pixels, function(pixel){
+        return '' + pixel.red + ',' + pixel.green + ',' + pixel.blue;
+    }).join(" | ");
+
+    console.log(guirlande);
 };
 
 // Go go go !
-console.log("############################################");
-console.log("      Let's go ! ...in", POLLING_PERIOD / 1000, "seconds");
-console.log("############################################");
-var checkNumber = 0;
+console.log('############################################');
+console.log('      Let\'s go ! ...in', POLLING_PERIOD / 1000, 'seconds');
+console.log('############################################');
+var stillChecking = false;
 setInterval(function() {
-    console.log("\n -- Ctrl-C to stop harassing Jenkins");
+
+    if (stillChecking) {
+        console.log('\n -- Still checking -- your polling period may be to short...');
+        return;
+    }
+
+    console.log('\n -- Ctrl-C to stop harassing Jenkins');
     // Clean the possible last array of pixels
     pixels = [];
-    checkNumber++;
 
-    console.log("\n\nGet avop trunk status #", checkNumber);
+    stillChecking = true;
+    async.eachSeries(buildsUrl, function(url, callback) {
+        console.log('\n\nGet status of >> ', url);
+        getBuild(url, function(buildColor, lastBuildUrl) {
+            console.log('Check last build >> ', lastBuildUrl);
+            getLastBuildStatus(lastBuildUrl, function(lastBuild) {
+                console.log('Last build >> ', lastBuild.fullDisplayName);
+                // Extract the necessary info and call the guirlande API.
+                processBuildStatus(buildColor, lastBuild);
 
-    getBuild(build1Url, function(buildColor, lastBuildUrl) {
-        getLastBuildStatus(lastBuildUrl, function(lastBuild) {
-            // Extract the necessary info and call the guirlande API.
-            processBuildStatus(buildColor, lastBuild);
-
-            // Push 8 white pixels to delimited the 2 builds
-            _.each(_.range(8), function() {
-                pixels.push(colors.black);
-            });
-
-            console.log("\n\nGet avop branch status");
-            getBuild(build2Url, function(buildColor, lastBuildUrl) {
-                getLastBuildStatus(lastBuildUrl, function(lastBuild) {
-                    // Extract the necessary info and call the guirlande API.
-                    processBuildStatus(buildColor, lastBuild);
-
-                    // Finally send the command to update the guirlande
-                    sendPixels(pixels);
-                });
+                callback();
             });
         });
+    }, function() {
+        // Finally send the command to update the guirlande
+        sendPixels(pixels);
+        stillChecking = false;
     });
+
+    // console.log('\n\nGet avop trunk status #', checkNumber);
+
+    // getBuild(build1Url, function(buildColor, lastBuildUrl) {
+    //     getLastBuildStatus(lastBuildUrl, function(lastBuild) {
+    //         // Extract the necessary info and call the guirlande API.
+    //         processBuildStatus(buildColor, lastBuild);
+
+    //         // Push 8 white pixels to delimited the 2 builds
+    //         _.each(_.range(8), function() {
+    //             pixels.push(colors.black);
+    //         });
+
+    //         console.log('\n\nGet avop branch status');
+    //         getBuild(build2Url, function(buildColor, lastBuildUrl) {
+    //             getLastBuildStatus(lastBuildUrl, function(lastBuild) {
+    //                 // Extract the necessary info and call the guirlande API.
+    //                 processBuildStatus(buildColor, lastBuild);
+
+    //                 // Finally send the command to update the guirlande
+    //                 sendPixels(pixels);
+    //             });
+    //         });
+    //     });
+    // });
 }, POLLING_PERIOD);
