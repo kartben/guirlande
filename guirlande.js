@@ -13,6 +13,7 @@ var request = require('request');
 var _ = require('underscore');
 var nconf = require('nconf');
 var fs = require('fs');
+var clc = require('cli-color');
 
 if (!fs.existsSync('./config.json')) {
     console.error('Your forgot to create your config.json configuration file.');
@@ -59,12 +60,15 @@ if (configError) {
 var nbPixels = 64;
 var nbBuilds = buildsUrl.length;
 var nbBuildPixels = Math.round(nbPixels / nbBuilds);
-console.log("nbBuildPixels >>",nbBuildPixels);
 var nbBuildStatusPixels = Math.round(nbBuildPixels * 3 / 4);
-console.log("nbBuildStatusPixels >>",nbBuildStatusPixels);
 var nbBuildClaimedPixels = nbBuildPixels - nbBuildStatusPixels;
-console.log("nbBuildClaimedPixels >>",nbBuildClaimedPixels);
-console.log("Total >>",nbBuildStatusPixels + nbBuildClaimedPixels);
+console.log("Here is the pixels breakdown per builds :");
+console.log("------------------------------------------");
+console.log("Pixels per build >>",nbBuildPixels);
+console.log("Pixels per build status >>",nbBuildStatusPixels);
+console.log("Pixels per build claimed status >>",nbBuildClaimedPixels);
+console.log("--------------------------");
+console.log("Total used pixels >>",nbBuildPixels * nbBuilds , "/", nbPixels);
 
 
 var guirlandeUri = '/m3da/data/' + DEVICE_ID;
@@ -73,14 +77,14 @@ var guirlandeUri = '/m3da/data/' + DEVICE_ID;
 // Define the default colors
 // TODO : change format and move them to the config.json.template
 var colors = {
-    grey : { red : 100, green : 100, blue : 100 },
-    aborted : { red : 100, green : 100, blue : 100 },
-    yellow : {  red : 168, green : 153, blue : 40 },
-    blue : { red : 13, green : 13, blue : 163 },
-    red : { red : 201, green : 18, blue : 18 },
-    white : { red : 100, green : 100, blue : 100 },
-    green : { red : 6, green : 117, blue : 15 },
-    black : {red : 0 , green : 0, blue: 0}
+    grey : { name : 'grey', red : 100, green : 100, blue : 100 },
+    aborted : { name : 'aborted', red : 100, green : 100, blue : 100 },
+    yellow : { name : 'yellow', red : 168, green : 153, blue : 40 },
+    blue : { name : 'blue', red : 13, green : 13, blue : 163 },
+    red : { name : 'red', red : 201, green : 18, blue : 18 },
+    white : { name : 'white', red : 100, green : 100, blue : 100 },
+    green : { name : 'green', red : 6, green : 117, blue : 15 },
+    black : { name : 'black', red : 0 , green : 0, blue: 0}
 };
 
 // Extend the default colors to define the same colors in blinking state
@@ -183,32 +187,42 @@ var sendPixels = function(pixels) {
     };
 
     console.log('\n >>> Send pixels !');
-    // printPixels(pixels);
+    printPixels(pixels);
 
-    // request({
-    //     url : m3daServerUrl + guirlandeUri,
-    //     method : 'POST',
-    //     body : JSON.stringify(command)
-    // },
-    // function(error, response, body) {
-    //     if(error) {
-    //         console.log(' <<<< Oops something went wrong ...');
-    //         console.log(body);
-    //     } else {
-    //         console.log(' <<<< Pixels updated !');
-    //     }
-    //     console.log(' ### Next check in ', POLLING_PERIOD / 1000, 'seconds');
-    // });
+    request({
+        url : m3daServerUrl + guirlandeUri,
+        method : 'POST',
+        body : JSON.stringify(command)
+    },
+    function(error, response, body) {
+        if(error) {
+            console.log(' <<<< Oops something went wrong ...');
+            console.log(body);
+        } else {
+            console.log(' <<<< Pixels updated !');
+        }
+        console.log(' ### Next check in ', POLLING_PERIOD / 1000, 'seconds');
+    });
 };
 
+/**
+ * Print an ASCII preview of the remote guirlande :)
+ * 
+ * @param  {Object} pixels sent to the guirlande
+ */
 var printPixels = function(pixels) {
-    var guirlande = '';
+    var guirlande = _.map(pixels, function(pixel){
+        // Handle the "aborted" color => use grey
+        var color = pixel.name === 'aborted' ? 'grey' : pixel.name;
+        // Blinking pixels are represented by "@" normal ones by "#"
+        var text = pixel.blink ? '@' : '#';
+        // Use cli-color to emulate the LED colors
+        return clc[color](text);
+    }).join(" ");
 
-    guirlande = _.map(pixels, function(pixel){
-        return '' + pixel.red + ',' + pixel.green + ',' + pixel.blue;
-    }).join(" | ");
-
+    console.log('\nIt should look like this:\n');
     console.log(guirlande);
+    console.log('\n    Caption : @ > Blinking, # > Normal\n');
 };
 
 // Go go go !
@@ -216,6 +230,7 @@ console.log('############################################');
 console.log('      Let\'s go ! ...in', POLLING_PERIOD / 1000, 'seconds');
 console.log('############################################');
 var stillChecking = false;
+// setInterval may not be the smartest choice... to be improved
 setInterval(function() {
 
     if (stillChecking) {
@@ -245,29 +260,4 @@ setInterval(function() {
         sendPixels(pixels);
         stillChecking = false;
     });
-
-    // console.log('\n\nGet avop trunk status #', checkNumber);
-
-    // getBuild(build1Url, function(buildColor, lastBuildUrl) {
-    //     getLastBuildStatus(lastBuildUrl, function(lastBuild) {
-    //         // Extract the necessary info and call the guirlande API.
-    //         processBuildStatus(buildColor, lastBuild);
-
-    //         // Push 8 white pixels to delimited the 2 builds
-    //         _.each(_.range(8), function() {
-    //             pixels.push(colors.black);
-    //         });
-
-    //         console.log('\n\nGet avop branch status');
-    //         getBuild(build2Url, function(buildColor, lastBuildUrl) {
-    //             getLastBuildStatus(lastBuildUrl, function(lastBuild) {
-    //                 // Extract the necessary info and call the guirlande API.
-    //                 processBuildStatus(buildColor, lastBuild);
-
-    //                 // Finally send the command to update the guirlande
-    //                 sendPixels(pixels);
-    //             });
-    //         });
-    //     });
-    // });
 }, POLLING_PERIOD);
