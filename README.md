@@ -31,8 +31,8 @@ Node.js application (guirlande.js) instructions
 -----------------------------------------------
 
 #### What does it do ?
-Basically it polls *x* Jenkins builds status, check the "claim" state (see Claim report Jenkins plugin) and send a command to the Mihini application to update the LED strip. 
-The 64 LED strip in will be split in *x* parts. Each parts are split like this :
+Basically it polls *x* Jenkins builds status, checks the "claim" state (see Claim report Jenkins plugin) and sends a command to the Mihini application to update the LED strip. 
+The 64 LED strip will be split in *x* parts. Each part being split like this :
 * x * 3/4 for the build status
 * x * 1/4 for the "claim" state
 
