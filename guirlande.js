@@ -77,14 +77,14 @@ var guirlandeUri = '/m3da/data/' + DEVICE_ID;
 // Define the default colors
 // TODO : change format and move them to the config.json.template
 var colors = {
-    grey : { name : 'grey', red : 100, green : 100, blue : 100 },
-    aborted : { name : 'aborted', red : 100, green : 100, blue : 100 },
-    yellow : { name : 'yellow', red : 168, green : 153, blue : 40 },
-    blue : { name : 'blue', red : 13, green : 13, blue : 163 },
-    red : { name : 'red', red : 201, green : 18, blue : 18 },
-    white : { name : 'white', red : 100, green : 100, blue : 100 },
-    green : { name : 'green', red : 6, green : 117, blue : 15 },
-    black : { name : 'black', red : 0 , green : 0, blue: 0}
+    grey : { red : 100, green : 100, blue : 100 },
+    aborted : { red : 100, green : 100, blue : 100 },
+    yellow : { red : 168, green : 153, blue : 40 },
+    blue : { red : 13, green : 13, blue : 163 },
+    red : { red : 201, green : 18, blue : 18 },
+    white : {  red : 100, green : 100, blue : 100 },
+    green : {  red : 6, green : 117, blue : 15 },
+    black : {  red : 0 , green : 0, blue: 0}
 };
 
 // Extend the default colors to define the same colors in blinking state
@@ -159,12 +159,12 @@ var processBuildStatus = function(color, buildStatus) {
     });
 
     // Does anyone has claimed this build ?
-    var claimColor = colors.white;
+    var claimColor = colors.black;
     if (claimedStatus) {
         console.log(' Claimed => push',nbBuildClaimedPixels,'green');
         claimColor = colors.green;
     } else {
-        console.log(' Not claimed => push',nbBuildClaimedPixels,'white');
+        console.log(' Not claimed => push',nbBuildClaimedPixels,'black');
     }
 
     _.each(_.range(nbBuildClaimedPixels), function(){
@@ -187,7 +187,8 @@ var sendPixels = function(pixels) {
     };
 
     console.log('\n >>> Send pixels !');
-    printPixels(pixels);
+    // console.log('pixels :: ', pixels);
+    // printPixels(pixels);
 
     request({
         url : m3daServerUrl + guirlandeUri,
@@ -225,14 +226,8 @@ var printPixels = function(pixels) {
     console.log('\n    Caption : @ > Blinking, # > Normal\n');
 };
 
-// Go go go !
-console.log('############################################');
-console.log('      Let\'s go ! ...in', POLLING_PERIOD / 1000, 'seconds');
-console.log('############################################');
 var stillChecking = false;
-// setInterval may not be the smartest choice... to be improved
-setInterval(function() {
-
+var pollJenkins = function(callback) {
     if (stillChecking) {
         console.log('\n -- Still checking -- your polling period may be to short...');
         return;
@@ -259,5 +254,18 @@ setInterval(function() {
         // Finally send the command to update the guirlande
         sendPixels(pixels);
         stillChecking = false;
+        if (callback) {
+            callback();
+        }
     });
-}, POLLING_PERIOD);
+};
+
+// Go go go !
+console.log('############################################');
+console.log('      Let\'s go ! ...in', POLLING_PERIOD / 1000, 'seconds');
+console.log('############################################');
+pollJenkins(function() {
+    setInterval(function() {
+        pollJenkins();        
+    }, POLLING_PERIOD);
+});
