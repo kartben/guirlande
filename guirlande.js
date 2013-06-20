@@ -31,14 +31,14 @@ nconf.defaults({
 
 nconf.load();
 
-var buildsUrl = nconf.get('buildsUrl');
+var blocks = nconf.get('blocks');
 var m3daServerUrl = nconf.get('m3daServerUrl');
 var DEVICE_ID = nconf.get('deviceId');
 var POLLING_PERIOD = nconf.get('pollingPeriod');
 
 var configError = false;
-if (!buildsUrl) {
-    console.error('## Config errror : "buildsUrl" value not set.');
+if (!blocks) {
+    console.error('## Config errror : "blocks" value not set.');
     configError = true;
 }
 
@@ -56,20 +56,6 @@ if (configError) {
     console.error('## Please check the your config.json file.');
     return;
 }
-
-var nbPixels = 64;
-var nbBuilds = buildsUrl.length;
-var nbBuildPixels = Math.round(nbPixels / nbBuilds);
-var nbBuildStatusPixels = Math.round(nbBuildPixels * 3 / 4);
-var nbBuildClaimedPixels = nbBuildPixels - nbBuildStatusPixels;
-console.log("Here is the pixels breakdown per builds :");
-console.log("------------------------------------------");
-console.log("Pixels per build >>",nbBuildPixels);
-console.log("Pixels per build status >>",nbBuildStatusPixels);
-console.log("Pixels per build claimed status >>",nbBuildClaimedPixels);
-console.log("--------------------------");
-console.log("Total used pixels >>",nbBuildPixels * nbBuilds , "/", nbPixels);
-
 
 var guirlandeUri = '/m3da/data/' + DEVICE_ID;
 
@@ -105,15 +91,16 @@ var pixels = [];
  * @param  {Function} callback called with the last build object
  * 
  */
-var getBuild = function(buildUrl, callback) {
+var getBuild = function(build, callback) {
+    console.log('\n\nGet status of >> ', build.url);
     request({
-            url : buildUrl,
+            url : build.url,
             strictSSL : false
         },
         function (error, response, body) {
             if (!error && response.statusCode == 200) {
-                var build = JSON.parse(body);
-                callback(build.color, build.lastBuild.url);
+                var remoteBuild = JSON.parse(body);
+                callback(remoteBuild.color, remoteBuild.lastBuild.url);
             }
     });
 };
@@ -142,34 +129,37 @@ var getLastBuildStatus = function(lastBuildUrl, callback) {
 
 /**
  * Process the build status to update the guirlande
- * 
+ *
+ * @param  {Object} block, block config object
  * @param  {String} color, corresponds to the status.
  * @param  {Object} buildStatus, see Jenkins API for more details
  */
-var processBuildStatus = function(color, buildStatus) {
+var processBuildStatus = function(block, color, buildStatus) {
     console.log(' Process build >> ', buildStatus.fullDisplayName);
-    console.log('', buildStatus.result, '=> push', nbBuildStatusPixels, color, 'pixels');
-    _.each(_.range(nbBuildStatusPixels), function(){
+    console.log('', buildStatus.result, '=> push', block.nbLeds, color, 'pixels');
+    _.each(_.range(block.nbLeds), function(){
         pixels.push(colors[color]);
     });
 
-    // Look for claiming information
-    var claimedStatus = _.find(buildStatus.actions, function(action) {
-        return action.claimed;
-    });
+    if (block.claimStatus) {
+        // Look for claiming information
+        var claimedStatus = _.find(buildStatus.actions, function(action) {
+            return action.claimed;
+        });
 
-    // Does anyone has claimed this build ?
-    var claimColor = colors.black;
-    if (claimedStatus) {
-        console.log(' Claimed => push',nbBuildClaimedPixels,'green');
-        claimColor = colors.green;
-    } else {
-        console.log(' Not claimed => push',nbBuildClaimedPixels,'black');
+        // Does anyone has claimed this build ?
+        var claimColor = colors.black;
+        if (claimedStatus) {
+            console.log(' Claimed => push',block.claimStatus,'green');
+            claimColor = colors.green;
+        } else {
+            console.log(' Not claimed => push',block.claimStatus,'black');
+        }
+
+        _.each(_.range(block.claimStatus), function(){
+            pixels.push(claimColor);
+        });
     }
-
-    _.each(_.range(nbBuildClaimedPixels), function(){
-        pixels.push(claimColor);
-    });
 };
 
 /**
@@ -226,46 +216,48 @@ var printPixels = function(pixels) {
     console.log('\n    Caption : @ > Blinking, # > Normal\n');
 };
 
-var stillChecking = false;
-var pollJenkins = function(callback) {
-    if (stillChecking) {
-        console.log('\n -- Still checking -- your polling period may be to short...');
-        return;
-    }
-
+var processBlocks = function() {
     console.log('\n -- Ctrl-C to stop harassing Jenkins');
     // Clean the possible last array of pixels
     pixels = [];
 
     stillChecking = true;
-    async.eachSeries(buildsUrl, function(url, callback) {
-        console.log('\n\nGet status of >> ', url);
-        getBuild(url, function(buildColor, lastBuildUrl) {
-            console.log('Check last build >> ', lastBuildUrl);
-            getLastBuildStatus(lastBuildUrl, function(lastBuild) {
-                console.log('Last build >> ', lastBuild.fullDisplayName);
-                // Extract the necessary info and call the guirlande API.
-                processBuildStatus(buildColor, lastBuild);
+    async.eachSeries(blocks, function(block, callback) {
+        // Is this block a separator or a jenkins build
+        if (block.url) {
+            getBuild(block, function(buildColor, lastBuildUrl) {
+                getLastBuildStatus(lastBuildUrl, function(lastBuild) {
+                    console.log('Last build >> ', lastBuild.fullDisplayName);
+                    // Extract the necessary info and call the guirlande API.
+                    processBuildStatus(block, buildColor, lastBuild);
 
-                callback();
+                    callback();
+                });
             });
-        });
+        } else {
+            // It must be a separator, just push black pixels
+            _.each(_.range(block.nbLeds), function(){
+                pixels.push(colors.black);
+
+                console.log('Space => push 1 black');
+            });
+            callback();
+        }
+
     }, function() {
         // Finally send the command to update the guirlande
         sendPixels(pixels);
-        stillChecking = false;
-        if (callback) {
-            callback();
-        }
+
+        // Wait sometime before checking again
+        setTimeout(function(){
+            processBlocks();
+        }, POLLING_PERIOD);
     });
 };
 
 // Go go go !
 console.log('############################################');
-console.log('      Let\'s go ! ...in', POLLING_PERIOD / 1000, 'seconds');
+console.log('      Let\'s go !');
 console.log('############################################');
-pollJenkins(function() {
-    setInterval(function() {
-        pollJenkins();        
-    }, POLLING_PERIOD);
-});
+
+processBlocks();

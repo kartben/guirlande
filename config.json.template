@@ -10,8 +10,17 @@
  *******************************************************************************/
 
  {
-    "buildsUrl" : [ "https://jenkins.yourDomain.com/job/job1/api/json",
-        "https://jenkins.yourDomain.com/job/job2/api/json"],
+    "buildsUrl" : [ {
+            "url" : "https://jenkins.yourDomain.com/job/job1/api/json",
+            "nbLeds" : 30,
+            "claimStatus" : 1
+        },{
+            "nbLeds" : 1
+        },{
+            "url" : "https://jenkins.yourDomain.com/job/job2/api/json",
+            "nbLeds" : 32
+        }
+    ],
     "m3daServerUrl" : "http://m2m.eclipse.org",
     "deviceId" : "yourDeviceId",
     "pollingPeriod" : 30000
