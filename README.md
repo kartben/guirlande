@@ -30,13 +30,11 @@ Of course, you can also launch main.lua application by hand on the Raspberry Pi,
 Node.js application (guirlande.js) instructions
 -----------------------------------------------
 
-This small application is a bit specific to our internal needs but you know what?! It's ok if you adapt it to fit yours :)
-
 #### What does it do ?
-Basically it polls 2 Jenkins builds status, check the "claim" state (see Claim report Jenkins plugin) and send a command to the Mihini application to update the LED strip. 
-We have chosen to "split" the 64 LED strip in 2 parts of 28 separated by 8 unused LEDs. Each 28 parts are split like this :
-* 24 for the build status
-* 4 for the "claim" state
+Basically it polls *x* Jenkins builds status, checks the "claim" state (see Claim report Jenkins plugin) and sends a command to the Mihini application to update the LED strip. 
+The 64 LED strip will be split in *x* parts. Each part being split like this :
+* x * 3/4 for the build status
+* x * 1/4 for the "claim" state
 
 #### Instructions
 Just clone this repo, get the necessary dependencies :  
