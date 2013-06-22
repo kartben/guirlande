@@ -46,6 +46,6 @@ Create a *config.json* based on the template to :
 * Set the DeviceId  you already used in the Mihini application
 * Tweak the polling period
 
-And and launch it :  
+And launch it :  
  `node guirlande.js`
 
