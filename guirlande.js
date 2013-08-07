@@ -65,6 +65,7 @@ var guirlandeUri = '/m3da/data/' + DEVICE_ID;
 var colors = {
     grey : { red : 100, green : 100, blue : 100 },
     aborted : { red : 100, green : 100, blue : 100 },
+    disabled : { red : 173, green : 184, blue : 186 },
     yellow : { red : 168, green : 153, blue : 40 },
     blue : { red : 13, green : 13, blue : 163 },
     red : { red : 201, green : 18, blue : 18 },
@@ -76,6 +77,7 @@ var colors = {
 // Extend the default colors to define the same colors in blinking state
 colors = _.extend(colors, {
     aborted_anime : _.extend(_.clone(colors.aborted), { blink : true}),
+    disabled_anime : _.extend(_.clone(colors.disabled), { blink : true}),
     yellow_anime : _.extend(_.clone(colors.yellow), { blink : true}),
     blue_anime : _.extend(_.clone(colors.blue), { blink : true}),
     red_anime : _.extend(_.clone(colors.red), { blink : true})
